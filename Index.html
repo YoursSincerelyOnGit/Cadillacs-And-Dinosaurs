@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cadillacs & Dinosaurs</title>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d0d0d;color:#fff;font-family:Arial,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 60px}
+
+/* ── HEADER ── */
+.arcade-header{width:100%;max-width:960px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.logo-title{font-size:1.6rem;font-weight:800;color:#f5a623;letter-spacing:1px;text-transform:uppercase}
+.logo-sub{font-size:0.7rem;color:#555;letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+.header-badges{display:flex;gap:8px;align-items:center}
+.badge{background:#1a1a1a;border:1px solid #252525;border-radius:6px;padding:5px 10px;font-size:0.7rem;color:#777;display:flex;align-items:center;gap:5px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#2ecc71;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── MODE SELECTOR ── */
+.mode-selector{width:100%;max-width:960px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.mode-card{background:#141414;border:1px solid #222;border-radius:10px;padding:16px 14px;cursor:pointer;transition:all .2s;text-align:center;position:relative}
+.mode-card:hover{border-color:#f5a623;background:#191400}
+.mode-card.active{border-color:#f5a623;background:#1c1500}
+.mode-card.active::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#f5a623;border-radius:10px 10px 0 0}
+.mode-icon{font-size:1.6rem;margin-bottom:6px}
+.mode-name{font-size:.82rem;font-weight:700;color:#ddd;text-transform:uppercase;letter-spacing:.5px}
+.mode-desc{font-size:.68rem;color:#555;margin-top:4px;line-height:1.4}
+
+/* ── CHARACTER SELECT ── */
+.chars{width:100%;max-width:960px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.char-card{background:#141414;border:1px solid #1e1e1e;border-radius:8px;padding:10px 8px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.char-card:hover{border-color:#f5a623;background:#1a1a1a}
+.char-card.active{border-color:#f5a623;background:#1c1500}
+.char-card.active::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#f5a623}
+.char-icon{font-size:1.5rem;margin-bottom:4px}
+.char-name{font-size:.72rem;font-weight:700;color:#ddd;text-transform:uppercase;letter-spacing:.5px}
+.char-role{font-size:.62rem;color:#555;margin-top:2px}
+.char-stars{display:flex;gap:3px;margin-top:6px;justify-content:center}
+.star{width:7px;height:7px;border-radius:50%;background:#f5a623}
+.star.off{background:#252525}
+
+/* ── MULTIPLAYER PANEL ── */
+.mp-panel{width:100%;max-width:960px;background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:18px 20px;margin-bottom:12px}
+.mp-title{font-size:.68rem;color:#555;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px}
+.mp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mp-section{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;padding:14px}
+.mp-section-label{font-size:.65rem;color:#444;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.mp-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.mp-input{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:7px 10px;color:#ddd;font-size:.8rem;flex:1;outline:none;font-family:monospace}
+.mp-input:focus{border-color:#f5a623}
+.mp-btn{background:#f5a623;color:#000;border:none;border-radius:6px;padding:7px 14px;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s}
+.mp-btn:hover{background:#e09415}
+.mp-btn.secondary{background:#1e1e1e;color:#aaa;border:1px solid #2a2a2a}
+.mp-btn.secondary:hover{background:#252525}
+.mp-btn.danger{background:#c0392b;color:#fff}
+.mp-btn.danger:hover{background:#a93226}
+.mp-status{font-size:.72rem;padding:6px 10px;border-radius:6px;background:#0a0a0a;border:1px solid #1a1a1a;color:#555;font-family:monospace;word-break:break-all;line-height:1.5}
+.mp-status.ok{color:#2ecc71;border-color:#0d3320}
+.mp-status.err{color:#e74c3c;border-color:#3a0d0d}
+.mp-status.info{color:#3498db;border-color:#0d2233}
+.peers-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.peer-item{display:flex;align-items:center;justify-content:space-between;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:6px;padding:6px 10px;font-size:.72rem}
+.peer-name{color:#aaa;font-family:monospace}
+.peer-ping{color:#2ecc71;font-size:.65rem}
+.share-box{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:6px;padding:8px 10px;margin-top:8px}
+.share-label{font-size:.62rem;color:#444;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.share-code{font-family:monospace;font-size:.78rem;color:#f5a623;word-break:break-all;cursor:pointer}
+.copy-hint{font-size:.62rem;color:#333;margin-top:3px}
+
+/* ── GAME AREA ── */
+.game-area{width:100%;max-width:960px}
+.game-topbar{background:#111;border:1px solid #1e1e1e;border-bottom:none;border-radius:10px 10px 0 0;padding:8px 14px;display:flex;align-items:center;justify-content:space-between}
+.topbar-left{display:flex;gap:18px;align-items:center}
+.stat-label{font-size:.62rem;color:#444;text-transform:uppercase;letter-spacing:1px}
+.stat-val{font-size:.95rem;font-weight:700;color:#f5a623;font-family:monospace;letter-spacing:2px;margin-top:1px}
+.lives{display:flex;gap:3px;margin-top:2px}
+.life{color:#e74c3c;font-size:.75rem}
+.topbar-right{display:flex;gap:6px}
+.ctrl-btn{background:#1a1a1a;border:1px solid #252525;border-radius:6px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:#666;font-size:.85rem;user-select:none}
+.ctrl-btn:hover{border-color:#f5a623;color:#f5a623}
+
+.iframe-wrap{width:100%;position:relative;padding-top:56.25%}
+.iframe-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-left:1px solid #1e1e1e;border-right:1px solid #1e1e1e;display:block}
+.game-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-left:1px solid #1e1e1e;border-right:1px solid #1e1e1e}
+.overlay-dino{font-size:2.5rem}
+.overlay-title{font-size:.95rem;font-weight:700;color:#f5a623;text-transform:uppercase;letter-spacing:2px}
+.play-btn{background:#f5a623;color:#000;border:none;border-radius:8px;padding:11px 30px;font-size:.9rem;font-weight:800;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:background .15s}
+.play-btn:hover{background:#e09415}
+.overlay-hint{font-size:.7rem;color:#333}
+
+.game-bottombar{background:#111;border:1px solid #1e1e1e;border-top:none;border-radius:0 0 10px 10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+.keys{display:flex;flex-wrap:wrap;gap:5px 12px}
+.key-hint{display:flex;align-items:center;gap:5px;font-size:.68rem}
+.key{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:2px 6px;font-size:.65rem;color:#999;font-family:monospace;font-weight:700}
+.key-desc{color:#3a3a3a}
+
+/* ── INFO PANELS ── */
+.panels{width:100%;max-width:960px;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.panel{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:14px 16px}
+.panel-title{font-size:.65rem;color:#444;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+.tip{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.tip-n{background:#1c1500;color:#f5a623;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0;margin-top:1px}
+.tip-t{font-size:.72rem;color:#555;line-height:1.5}
+.stage{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #161616}
+.stage:last-child{border-bottom:none}
+.stage-name{font-size:.72rem;color:#555}
+.diff{font-size:.62rem;padding:2px 7px;border-radius:4px}
+.d-easy{background:#0a1f0a;color:#2ecc71}
+.d-med{background:#1f1500;color:#f5a623}
+.d-hard{background:#1f0a0a;color:#e74c3c}
+
+/* ── NETWORK CHAT ── */
+.chat-wrap{width:100%;max-width:960px;background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:14px 16px;margin-top:10px;display:none}
+.chat-wrap.visible{display:block}
+.chat-title{font-size:.65rem;color:#444;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+.chat-log{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:6px;height:100px;overflow-y:auto;padding:8px 10px;margin-bottom:8px;font-size:.72rem;color:#666;font-family:monospace}
+.chat-log .msg{margin-bottom:4px}
+.chat-log .msg .who{color:#f5a623}
+.chat-row{display:flex;gap:8px}
+.chat-input{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:7px 10px;color:#ddd;font-size:.78rem;flex:1;outline:none}
+.chat-input:focus{border-color:#f5a623}
+.chat-send{background:#f5a623;color:#000;border:none;border-radius:6px;padding:7px 14px;font-size:.75rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="arcade-header">
+  <div>
+    <div class="logo-title">🦕 Cadillacs & Dinosaurs</div>
+    <div class="logo-sub">Capcom Arcade Classic — 1993</div>
+  </div>
+  <div class="header-badges">
+    <div class="badge"><span class="live-dot"></span>Live</div>
+    <div class="badge" id="modeBadge">Solo</div>
+    <div class="badge">CPS2</div>
+  </div>
+</div>
+
+<!-- MODE SELECTOR -->
+<div class="mode-selector">
+  <div class="mode-card active" id="modeOffline" onclick="setMode('offline')">
+    <div class="mode-icon">🖥️</div>
+    <div class="mode-name">Offline / Solo</div>
+    <div class="mode-desc">Play alone or pass the keyboard with a friend on the same device</div>
+  </div>
+  <div class="mode-card" id="modeLocal" onclick="setMode('local')">
+    <div class="mode-icon">🎮</div>
+    <div class="mode-name">Local Co-op</div>
+    <div class="mode-desc">Two players on one screen — Player 1 uses WASD, Player 2 uses arrow keys</div>
+  </div>
+  <div class="mode-card" id="modeOnline" onclick="setMode('online')">
+    <div class="mode-icon">🌐</div>
+    <div class="mode-name">Online Multiplayer</div>
+    <div class="mode-desc">Connect with friends on different devices via a room code</div>
+  </div>
+</div>
+
+<!-- CHARACTER SELECT -->
+<div class="chars">
+  <div class="char-card active" onclick="selectChar(this,'Jack','Jack Tenrec')">
+    <div class="char-icon">🥊</div>
+    <div class="char-name">Jack</div>
+    <div class="char-role">Balanced</div>
+    <div class="char-stars"><div class="star"></div><div class="star"></div><div class="star"></div><div class="star off"></div><div class="star off"></div></div>
+  </div>
+  <div class="char-card" onclick="selectChar(this,'Hannah','Hannah Dundee')">
+    <div class="char-icon">⚡</div>
+    <div class="char-name">Hannah</div>
+    <div class="char-role">Agile</div>
+    <div class="char-stars"><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div><div class="star off"></div></div>
+  </div>
+  <div class="char-card" onclick="selectChar(this,'Mustapha','Mustapha Cairo')">
+    <div class="char-icon">💨</div>
+    <div class="char-name">Mustapha</div>
+    <div class="char-role">Speedster</div>
+    <div class="char-stars"><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div></div>
+  </div>
+  <div class="char-card" onclick="selectChar(this,'Mess',"Mess O'Bradovich")">
+    <div class="char-icon">💪</div>
+    <div class="char-name">Mess</div>
+    <div class="char-role">Powerhouse</div>
+    <div class="char-stars"><div class="star"></div><div class="star"></div><div class="star off"></div><div class="star off"></div><div class="star off"></div></div>
+  </div>
+</div>
+
+<!-- MULTIPLAYER PANEL (online) -->
+<div class="mp-panel" id="mpPanel" style="display:none">
+  <div class="mp-title">Online Multiplayer — Peer-to-peer via room code</div>
+  <div class="mp-grid">
+    <div class="mp-section">
+      <div class="mp-section-label">Host a room</div>
+      <div class="mp-row">
+        <input class="mp-input" id="nicknameInput" placeholder="Your nickname" maxlength="16" value="Player1"/>
+        <button class="mp-btn" onclick="hostRoom()">Create room</button>
+      </div>
+      <div id="hostStatus" class="mp-status">Not hosting</div>
+      <div id="shareBox" class="share-box" style="display:none">
+        <div class="share-label">Share this code with friends</div>
+        <div class="share-code" id="shareCode" onclick="copyCode()" title="Click to copy"></div>
+        <div class="copy-hint">Click to copy</div>
+      </div>
+      <div class="peers-list" id="peersList"></div>
+    </div>
+    <div class="mp-section">
+      <div class="mp-section-label">Join a room</div>
+      <div class="mp-row">
+        <input class="mp-input" id="joinNick" placeholder="Your nickname" maxlength="16" value="Player2"/>
+      </div>
+      <div class="mp-row">
+        <input class="mp-input" id="roomCodeInput" placeholder="Paste room code here"/>
+        <button class="mp-btn" onclick="joinRoom()">Join</button>
+      </div>
+      <div id="joinStatus" class="mp-status">Not connected</div>
+      <button class="mp-btn danger" onclick="disconnect()" style="margin-top:8px;width:100%">Disconnect</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOCAL CO-OP INFO PANEL -->
+<div class="mp-panel" id="localPanel" style="display:none">
+  <div class="mp-title">Local Co-op — Same keyboard, same screen</div>
+  <div class="mp-grid">
+    <div class="mp-section">
+      <div class="mp-section-label">Player 1 controls</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+        <div class="key-hint" style="font-size:.75rem"><span class="key">W A S D</span><span style="color:#666;margin-left:4px">Move</span></div>
+        <div class="key-hint" style="font-size:.75rem"><span class="key">G</span><span style="color:#666;margin-left:4px">Attack</span></div>
+        <div class="key-hint" style="font-size:.75rem"><span class="key">H</span><span style="color:#666;margin-left:4px">Jump</span></div>
+        <div class="key-hint" style="font-size:.75rem"><span class="key">G+H</span><span style="color:#666;margin-left:4px">Special</span></div>
+        <div class="key-hint" style="font-size:.75rem"><span class="key">5</span><span style="color:#666;margin-left:4px">Insert coin P1</span></div>
+        <div class="key-hint" style="font-size:.75rem"><span class="key">1</span><span style="color:#666;margin-left:4px">Start P1</span></div>
+      </div>
+    </div>
+    <div class="mp-section">
+      <div class="mp-section-label">Player 2 controls</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+        <div class="key-hint" style="font-size:.75rem"><span class="key">↑ ↓ ← →</span><span style="color:#666;margin-left:4px">Move</span></div>
+        <div class="key-hint" style="font-size:.75rem"><span class="key">K</span><span style="color:#666;margin-left:4px">Attack</span></div>
+        <div class="key-hint" style="font-size:.75rem"><span class="key">L</span><span style="color:#666;margin-left:4px">Jump</span></div>
+        <div class="key-hint" style="font-size:.75km"><span class="key">K+L</span><span style="color:#666;margin-left:4px">Special</span></div>
+        <div class="key-hint" style="font-size:.75rem"><span class="key">6</span><span style="color:#666;margin-left:4px">Insert coin P2</span></div>
+        <div class="key-hint" style="font-size:.75rem"><span class="key">2</span><span style="color:#666;margin-left:4px">Start P2</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:12px;font-size:.72rem;color:#444;line-height:1.6">
+    Both players share the same game window. Press <span style="color:#f5a623;font-family:monospace">5</span> then <span style="color:#f5a623;font-family:monospace">1</span> for P1 and <span style="color:#f5a623;font-family:monospace">6</span> then <span style="color:#f5a623;font-family:monospace">2</span> for P2 before starting.
+  </div>
+</div>
+
+<!-- GAME AREA -->
+<div class="game-area">
+  <div class="game-topbar">
+    <div class="topbar-left">
+      <div><div class="stat-label">Score</div><div class="stat-val" id="scoreDisplay">000000</div></div>
+      <div><div class="stat-label">Lives</div><div class="lives"><span class="life">♥</span><span class="life">♥</span><span class="life">♥</span></div></div>
+      <div><div class="stat-label">Character</div><div class="stat-val" style="font-size:.78rem;letter-spacing:0" id="charDisplay">Jack Tenrec</div></div>
+      <div><div class="stat-label">Mode</div><div class="stat-val" style="font-size:.78rem;letter-spacing:0;color:#3498db" id="modeDisplay">Solo</div></div>
+    </div>
+    <div class="topbar-right">
+      <div class="ctrl-btn" title="Fullscreen" onclick="goFullscreen()">⛶</div>
+      <div class="ctrl-btn" title="Reload" onclick="reloadGame()">↺</div>
+    </div>
+  </div>
+
+  <div class="iframe-wrap" id="iframeWrap">
+    <div class="game-overlay" id="overlay">
+      <div class="overlay-dino">🦕</div>
+      <div class="overlay-title" id="overlayTitle">Ready to play</div>
+      <button class="play-btn" onclick="startGame()">Insert coin &amp; play</button>
+      <div class="overlay-hint" id="overlayHint">Click to launch the arcade emulator</div>
+    </div>
+    <iframe id="gameFrame" src="about:blank" allowfullscreen
+      allow="fullscreen; autoplay; gamepad"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-popups">
+    </iframe>
+  </div>
+
+  <div class="game-bottombar">
+    <div class="keys" id="controlsBar">
+      <div class="key-hint"><span class="key">↑↓←→</span><span class="key-desc">Move</span></div>
+      <div class="key-hint"><span class="key">A</span><span class="key-desc">Attack</span></div>
+      <div class="key-hint"><span class="key">S</span><span class="key-desc">Jump</span></div>
+      <div class="key-hint"><span class="key">A+S</span><span class="key-desc">Special</span></div>
+      <div class="key-hint"><span class="key">5</span><span class="key-desc">Coin</span></div>
+      <div class="key-hint"><span class="key">1</span><span class="key-desc">Start</span></div>
+    </div>
+    <a href="https://archive.org/details/cadillacs-and-dinosaurs-world" target="_blank"
+      style="font-size:.68rem;color:#333;text-decoration:none">Open full screen ↗</a>
+  </div>
+</div>
+
+<!-- ONLINE CHAT -->
+<div class="chat-wrap" id="chatWrap">
+  <div class="chat-title">Room chat</div>
+  <div class="chat-log" id="chatLog"></div>
+  <div class="chat-row">
+    <input class="chat-input" id="chatInput" placeholder="Type a message..." maxlength="120" onkeydown="if(event.key==='Enter')sendChat()"/>
+    <button class="chat-send" onclick="sendChat()">Send</button>
+  </div>
+</div>
+
+<!-- INFO PANELS -->
+<div class="panels">
+  <div class="panel">
+    <div class="panel-title">Pro tips</div>
+    <div class="tip"><div class="tip-n">1</div><div class="tip-t">Throw enemies into dinosaurs for massive bonus damage.</div></div>
+    <div class="tip"><div class="tip-n">2</div><div class="tip-t">Save firearm ammo for bosses — use melee on regular enemies.</div></div>
+    <div class="tip"><div class="tip-n">3</div><div class="tip-t">Don't shoot neutral dinos — they'll turn hostile on everyone.</div></div>
+    <div class="tip"><div class="tip-n">4</div><div class="tip-t">Special (A+S) costs health — only use it when surrounded.</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Stages</div>
+    <div class="stage"><span class="stage-name">1. The Wasteland</span><span class="diff d-easy">Starter</span></div>
+    <div class="stage"><span class="stage-name">2. The Jungle</span><span class="diff d-easy">Easy</span></div>
+    <div class="stage"><span class="stage-name">3. The City</span><span class="diff d-med">Medium</span></div>
+    <div class="stage"><span class="stage-name">4. Car Chase</span><span class="diff d-med">Medium</span></div>
+    <div class="stage"><span class="stage-name">5. Underground</span><span class="diff d-hard">Hard</span></div>
+    <div class="stage"><span class="stage-name">6–8. Final Stages</span><span class="diff d-hard">Boss Rush</span></div>
+  </div>
+</div>
+
+<script>
+const GAME_URL = "https://archive.org/embed/cadillacs-and-dinosaurs-world";
+let gameStarted = false;
+let currentMode = 'offline';
+let peer = null;
+let connections = [];
+let myNickname = 'Player1';
+let isHost = false;
+
+/* ── MODE ── */
+function setMode(m) {
+  currentMode = m;
+  ['offline','local','online'].forEach(id => {
+    document.getElementById('mode'+id.charAt(0).toUpperCase()+id.slice(1)).classList.toggle('active', id===m);
+  });
+  document.getElementById('mpPanel').style.display   = m==='online' ? 'block' : 'none';
+  document.getElementById('localPanel').style.display = m==='local'  ? 'block' : 'none';
+  document.getElementById('chatWrap').classList.toggle('visible', m==='online');
+  document.getElementById('modeBadge').textContent = m==='offline'?'Solo': m==='local'?'Local Co-op':'Online';
+  document.getElementById('modeDisplay').textContent = m==='offline'?'Solo': m==='local'?'Local Co-op':'Online';
+  const hints = {
+    offline:'<div class="key-hint"><span class="key">↑↓←→</span><span class="key-desc">Move</span></div><div class="key-hint"><span class="key">A</span><span class="key-desc">Attack</span></div><div class="key-hint"><span class="key">S</span><span class="key-desc">Jump</span></div><div class="key-hint"><span class="key">A+S</span><span class="key-desc">Special</span></div><div class="key-hint"><span class="key">5</span><span class="key-desc">Coin</span></div><div class="key-hint"><span class="key">1</span><span class="key-desc">Start</span></div>',
+    local:'<div class="key-hint"><span class="key">WASD</span><span class="key-desc">P1 Move</span></div><div class="key-hint"><span class="key">G/H</span><span class="key-desc">P1 Atk/Jump</span></div><div class="key-hint"><span class="key">↑↓←→</span><span class="key-desc">P2 Move</span></div><div class="key-hint"><span class="key">K/L</span><span class="key-desc">P2 Atk/Jump</span></div><div class="key-hint"><span class="key">5/1</span><span class="key-desc">P1 Coin/Start</span></div><div class="key-hint"><span class="key">6/2</span><span class="key-desc">P2 Coin/Start</span></div>',
+    online:'<div class="key-hint"><span class="key">↑↓←→</span><span class="key-desc">Move</span></div><div class="key-hint"><span class="key">A</span><span class="key-desc">Attack</span></div><div class="key-hint"><span class="key">S</span><span class="key-desc">Jump</span></div><div class="key-hint"><span class="key">A+S</span><span class="key-desc">Special</span></div><div class="key-hint"><span class="key">5</span><span class="key-desc">Coin</span></div><div class="key-hint"><span class="key">1</span><span class="key-desc">Start</span></div>'
+  };
+  document.getElementById('controlsBar').innerHTML = hints[m];
+  const titles = {offline:'Ready to play — solo mode',local:'Ready to play — local co-op',online:'Ready to play — online mode'};
+  const hints2 = {offline:'Click to launch the arcade emulator',local:'Both players on one keyboard',online:'Connect friends first, then launch'};
+  document.getElementById('overlayTitle').textContent = titles[m];
+  document.getElementById('overlayHint').textContent  = hints2[m];
+}
+
+/* ── CHAR SELECT ── */
+function selectChar(el, key, full) {
+  document.querySelectorAll('.char-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('charDisplay').textContent = full;
+  broadcast({type:'char', char:full});
+}
+
+/* ── GAME ── */
+function startGame() {
+  gameStarted = true;
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('gameFrame').src = GAME_URL;
+  animateScore();
+}
+function reloadGame() {
+  const f = document.getElementById('gameFrame');
+  if (!gameStarted) return;
+  f.src = 'about:blank';
+  setTimeout(()=>{ f.src = GAME_URL; }, 300);
+}
+function goFullscreen() {
+  const f = document.getElementById('gameFrame');
+  if (f.requestFullscreen) f.requestFullscreen();
+  else if (f.webkitRequestFullscreen) f.webkitRequestFullscreen();
+}
+function animateScore() {
+  let s = 0;
+  const el = document.getElementById('scoreDisplay');
+  setInterval(()=>{
+    s = (s + Math.floor(Math.random()*600+50)) % 1000000;
+    el.textContent = String(s).padStart(6,'0');
+  }, 400);
+}
+
+/* ── PEER.JS ONLINE MULTIPLAYER ── */
+function genRoomId() {
+  return 'cnd-' + Math.random().toString(36).slice(2,8).toUpperCase();
+}
+
+function hostRoom() {
+  myNickname = document.getElementById('nicknameInput').value.trim() || 'Host';
+  isHost = true;
+  cleanupPeer();
+  const roomId = genRoomId();
+  setHostStatus('info','Connecting to relay...');
+  peer = new Peer(roomId, {debug:0});
+  peer.on('open', id => {
+    setHostStatus('ok','Room open — waiting for players...');
+    document.getElementById('shareBox').style.display = 'block';
+    document.getElementById('shareCode').textContent = id;
+    logChat('System','Room created. Share the code above!');
+  });
+  peer.on('connection', conn => {
+    connections.push(conn);
+    conn.on('open', ()=>{
+      addPeerItem(conn.peer, conn.metadata?.nick || 'Guest');
+      logChat('System', (conn.metadata?.nick||'Guest')+' joined the room');
+      conn.send({type:'welcome', host:myNickname, players: connections.length+1});
+    });
+    conn.on('data', d => handleData(d, conn));
+    conn.on('close', ()=>{
+      connections = connections.filter(c=>c!==conn);
+      removePeerItem(conn.peer);
+      logChat('System',(conn.metadata?.nick||'Guest')+' left');
+    });
+  });
+  peer.on('error', e => setHostStatus('err','Error: '+e.type));
+}
+
+function joinRoom() {
+  const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+  myNickname = document.getElementById('joinNick').value.trim() || 'Player2';
+  if (!code) { setJoinStatus('err','Enter a room code'); return; }
+  cleanupPeer();
+  setJoinStatus('info','Connecting...');
+  peer = new Peer(undefined, {debug:0});
+  peer.on('open', ()=>{
+    const conn = peer.connect(code, {metadata:{nick:myNickname}});
+    connections.push(conn);
+    conn.on('open', ()=>{
+      setJoinStatus('ok','Connected to room!');
+      logChat('System','Joined room. Say hi!');
+      document.getElementById('chatWrap').classList.add('visible');
+    });
+    conn.on('data', d => handleData(d, conn));
+    conn.on('close', ()=>{ setJoinStatus('err','Disconnected'); connections=[]; });
+  });
+  peer.on('error', e => setJoinStatus('err','Cannot connect: '+e.type));
+}
+
+function handleData(d, conn) {
+  if (!d || !d.type) return;
+  if (d.type==='chat') { logChat(d.nick||'Guest', d.msg); }
+  if (d.type==='char') { logChat('System',(d.nick||'Guest')+' picked '+d.char); }
+  if (d.type==='welcome') { logChat('System','Host: '+d.host+' | Players: '+d.players); }
+}
+
+function broadcast(data) {
+  connections.forEach(c=>{ try{ c.send({...data, nick:myNickname}); }catch(e){} });
+}
+
+function sendChat() {
+  const inp = document.getElementById('chatInput');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  logChat(myNickname, msg);
+  broadcast({type:'chat', msg});
+  inp.value = '';
+}
+
+function logChat(who, msg) {
+  const log = document.getElementById('chatLog');
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.innerHTML = '<span class="who">'+escHtml(who)+':</span> '+escHtml(msg);
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function escHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function disconnect() {
+  cleanupPeer();
+  connections = [];
+  setHostStatus('','Not hosting');
+  setJoinStatus('','Not connected');
+  document.getElementById('shareBox').style.display = 'none';
+  document.getElementById('peersList').innerHTML = '';
+  logChat('System','Disconnected');
+}
+
+function cleanupPeer() {
+  if (peer) { try{ peer.destroy(); }catch(e){} peer=null; }
+  connections.forEach(c=>{ try{ c.close(); }catch(e){} });
+  connections = [];
+}
+
+function setHostStatus(type, msg) {
+  const el = document.getElementById('hostStatus');
+  el.textContent = msg;
+  el.className = 'mp-status'+(type?' '+type:'');
+}
+function setJoinStatus(type, msg) {
+  const el = document.getElementById('joinStatus');
+  el.textContent = msg;
+  el.className = 'mp-status'+(type?' '+type:'');
+}
+
+function addPeerItem(id, nick) {
+  const list = document.getElementById('peersList');
+  const div = document.createElement('div');
+  div.className = 'peer-item';
+  div.id = 'peer-'+id;
+  div.innerHTML = '<span class="peer-name">'+escHtml(nick)+'</span><span class="peer-ping">● online</span>';
+  list.appendChild(div);
+}
+function removePeerItem(id) {
+  const el = document.getElementById('peer-'+id);
+  if (el) el.remove();
+}
+
+function copyCode() {
+  const code = document.getElementById('shareCode').textContent;
+  navigator.clipboard.writeText(code).then(()=>{
+    const el = document.querySelector('.copy-hint');
+    el.textContent = 'Copied!';
+    setTimeout(()=>{ el.textContent = 'Click to copy'; }, 2000);
+  });
+}
+</script>
+</body>
+</html>
